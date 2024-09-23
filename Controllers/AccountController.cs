@@ -4,6 +4,8 @@ using BankApp.Models;
 using System.Linq;
 using System;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore; // สำหรับการใช้งาน ToListAsync
+using System.Threading.Tasks;
 
 namespace BankApp.Controllers
 {
@@ -21,7 +23,7 @@ namespace BankApp.Controllers
 
         // ดึงยอดเงินปัจจุบันของผู้ใช้ที่ยืนยันตัวตนแล้ว
         [HttpGet("balance")]
-        public IActionResult GetBalance()
+        public async Task<IActionResult> GetBalance()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // ดึง Claim ที่เป็น UserId จาก JWT Token
             if (userIdClaim == null)
@@ -29,7 +31,7 @@ namespace BankApp.Controllers
                 return Unauthorized("Invalid token."); // ถ้าไม่เจอ Claim ถือว่า Token ไม่ถูกต้อง
             }
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูลด้วย userId ที่ดึงจาก Token
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูลด้วย userId ที่ดึงจาก Token
             if (user == null)
             {
                 return NotFound("User not found."); // ถ้าไม่เจอผู้ใช้ ให้ส่งข้อความว่าไม่เจอ
@@ -40,7 +42,7 @@ namespace BankApp.Controllers
 
         // ฟังก์ชันสำหรับฝากเงิน
         [HttpPost("deposit")]
-        public IActionResult Deposit([FromBody] TransferModel model)
+        public async Task<IActionResult> Deposit([FromBody] TransferModel model)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // ดึง Claim ที่เป็น UserId จาก JWT Token
             if (userIdClaim == null)
@@ -48,7 +50,7 @@ namespace BankApp.Controllers
                 return Unauthorized("Invalid token."); // ถ้าไม่เจอ Claim ถือว่า Token ไม่ถูกต้อง
             }
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
             if (user == null)
             {
                 return NotFound("User not found."); // ถ้าไม่เจอผู้ใช้ ให้ส่งข้อความว่าไม่เจอ
@@ -69,14 +71,14 @@ namespace BankApp.Controllers
                 TransactionType = "Deposit", // ระบุว่าเป็นการฝากเงิน
                 Timestamp = DateTime.UtcNow
             });
-            _context.SaveChanges(); // บันทึกการเปลี่ยนแปลงลงในฐานข้อมูล
+            await _context.SaveChangesAsync(); // บันทึกการเปลี่ยนแปลงลงในฐานข้อมูลแบบ async
 
             return Ok(new { Balance = user.Balance }); // ส่งยอดเงินใหม่กลับไป
         }
 
         // ฟังก์ชันสำหรับถอนเงิน
         [HttpPost("withdraw")]
-        public IActionResult Withdraw([FromBody] TransferModel model)
+        public async Task<IActionResult> Withdraw([FromBody] TransferModel model)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // ดึง Claim ที่เป็น UserId จาก JWT Token
             if (userIdClaim == null)
@@ -84,7 +86,7 @@ namespace BankApp.Controllers
                 return Unauthorized("Invalid token."); // ถ้าไม่เจอ Claim ถือว่า Token ไม่ถูกต้อง
             }
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
             if (user == null)
             {
                 return NotFound("User not found."); // ถ้าไม่เจอผู้ใช้ ให้ส่งข้อความว่าไม่เจอ
@@ -111,18 +113,18 @@ namespace BankApp.Controllers
                 TransactionType = "Withdraw", // ระบุว่าเป็นการถอนเงิน
                 Timestamp = DateTime.UtcNow
             });
-            _context.SaveChanges(); // บันทึกการเปลี่ยนแปลงลงในฐานข้อมูล
+            await _context.SaveChangesAsync(); // บันทึกการเปลี่ยนแปลงลงในฐานข้อมูลแบบ async
 
             return Ok(new { Balance = user.Balance }); // ส่งยอดเงินใหม่กลับไป
         }
 
         // ฟังก์ชันสำหรับโอนเงินจากผู้ใช้คนหนึ่งไปยังผู้ใช้อีกคนหนึ่ง
         [HttpPost("transfer")]
-        public IActionResult Transfer([FromBody] TransferModel model)
+        public async Task<IActionResult> Transfer([FromBody] TransferModel model)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // ดึง UserId ของผู้ส่งจาก JWT Token
-            var sender = _context.Users.FirstOrDefault(u => u.Id == int.Parse(userId)); // ค้นหาผู้ส่งจากฐานข้อมูล
-            var receiver = _context.Users.FirstOrDefault(u => u.Id == model.ReceiverId); // ค้นหาผู้รับจากฐานข้อมูล
+            var sender = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userId)); // ค้นหาผู้ส่งจากฐานข้อมูล
+            var receiver = await _context.Users.FirstOrDefaultAsync(u => u.Id == model.ReceiverId); // ค้นหาผู้รับจากฐานข้อมูล
 
             // ตรวจสอบว่าไม่สามารถโอนเงินให้ตัวเองได้
             if (sender == null || receiver == null || sender.Id == receiver.Id)
@@ -142,7 +144,7 @@ namespace BankApp.Controllers
                 return BadRequest("Amount must be greater than zero.");
             }
 
-            using (var transaction = _context.Database.BeginTransaction()) // เริ่มต้น Transaction เพื่อให้มั่นใจว่าการโอนสำเร็จสมบูรณ์
+            using (var transaction = await _context.Database.BeginTransactionAsync()) // เริ่มต้น Transaction เพื่อให้มั่นใจว่าการโอนสำเร็จสมบูรณ์
             {
                 try
                 {
@@ -162,14 +164,14 @@ namespace BankApp.Controllers
                         Timestamp = DateTime.UtcNow
                     });
 
-                    _context.SaveChanges(); // บันทึกการเปลี่ยนแปลงลงในฐานข้อมูล
-                    transaction.Commit(); // ยืนยัน Transaction
+                    await _context.SaveChangesAsync(); // บันทึกการเปลี่ยนแปลงลงในฐานข้อมูลแบบ async
+                    await transaction.CommitAsync(); // ยืนยัน Transaction
 
                     return Ok(new { SenderBalance = sender.Balance, ReceiverBalance = receiver.Balance }); // ส่งยอดเงินใหม่ของผู้ส่งและผู้รับกลับไป
                 }
                 catch (Exception)
                 {
-                    transaction.Rollback(); // ยกเลิก Transaction หากเกิดข้อผิดพลาด
+                    await transaction.RollbackAsync(); // ยกเลิก Transaction หากเกิดข้อผิดพลาด
                     return StatusCode(500, "An error occurred while processing your request."); // แจ้งข้อผิดพลาด
                 }
             }
@@ -177,7 +179,7 @@ namespace BankApp.Controllers
 
         // ดึงประวัติการทำธุรกรรมของผู้ใช้ที่ยืนยันตัวตนแล้ว
         [HttpGet("history")]
-        public IActionResult GetTransactionHistory()
+        public async Task<IActionResult> GetTransactionHistory()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // ดึง Claim ที่เป็น UserId จาก JWT Token
             if (userIdClaim == null)
@@ -185,24 +187,24 @@ namespace BankApp.Controllers
                 return Unauthorized("Invalid token.");
             }
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
             if (user == null)
             {
                 return NotFound("User not found.");
             }
 
             // ดึงประวัติการทำธุรกรรมของผู้ใช้ทั้งที่เป็นผู้ส่งและผู้รับ
-            var transactions = _context.Transactions
+            var transactions = await _context.Transactions
                 .Where(t => t.SenderId == user.Id || t.ReceiverId == user.Id)
                 .OrderByDescending(t => t.Timestamp)
-                .ToList();
+                .ToListAsync(); // ใช้ ToListAsync สำหรับการดึงข้อมูลแบบ async
 
             return Ok(transactions); // ส่งประวัติการทำธุรกรรมกลับไป
         }
 
         // ดึงข้อมูลโปรไฟล์ของผู้ใช้ที่ยืนยันตัวตนแล้ว
         [HttpGet("profile")]
-        public IActionResult GetProfile()
+        public async Task<IActionResult> GetProfile()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // ดึง Claim ที่เป็น UserId จาก JWT Token
             if (userIdClaim == null)
@@ -210,8 +212,8 @@ namespace BankApp.Controllers
                 return Unauthorized("Invalid token.");
             }
 
-            var user = _context.Users.FirstOrDefault(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
-            if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == int.Parse(userIdClaim.Value)); // ค้นหาผู้ใช้จากฐานข้อมูล
+            if(user == null)
             {
                 return NotFound("User not found.");
             }
@@ -219,6 +221,5 @@ namespace BankApp.Controllers
             // ส่งข้อมูลโปรไฟล์ของผู้ใช้ (Username และ UserId) กลับไป
             return Ok(new { Username = user.Username, UserId = user.Id });
         }
-
     }
 }
