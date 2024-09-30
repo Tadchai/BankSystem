@@ -12,7 +12,7 @@ This project is a simple banking system built using ASP.NET Core and Entity Fram
 - Secure: All routes are protected using JWT authentication.
 
 ## Technologies Used
-- Frontend: HTML, JavaScript, jQuery, Bootstrap (Optional, based on frontend integration)
+- Frontend: HTML, JavaScript, jQuery, Bootstrap 
 - Backend: ASP.NET Core, Entity Framework Core
 - Database: MySQL
 - Authentication: JWT (Json Web Token)
