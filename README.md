@@ -21,8 +21,8 @@ This project is a simple banking system built using ASP.NET Core and Entity Fram
 #### 1. Clone the repository
 
 ```bash
-    git clone https://github.com/YourUsername/BankApp.git
-    cd BankApp
+    git clone https://github.com/Tadchai/BankSystem.git
+    cd BankSystem
 ```
 
 #### 2. Setup environment variables
